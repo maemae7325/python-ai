@@ -1,5 +1,6 @@
 import streamlit as st
 from utils.gemini_client import stream_generate
+from utils.validators import contains_injection
 
 TONES = ["丁寧・フォーマル", "親しみやすい", "簡潔・ビジネス", "カジュアル"]
 LANGUAGES = ["日本語", "English", "日本語と英語（両方）"]
@@ -50,15 +51,14 @@ def email_reply_page(model_name: str):
     with col2:
         tone = st.selectbox("返信の文体", TONES)
         language = st.selectbox("言語", LANGUAGES)
-        temperature = st.slider(
-            "創造性",
-            min_value=0.0, max_value=1.0, value=0.4, step=0.1,
-            help="低めにすると安定した定型文、高めにすると自然なバリエーションが出ます",
-        )
 
+    temperature = 0.4
     if st.button("📧 返信文を生成", type="primary", use_container_width=True):
         if not received_email.strip():
             st.error("❌ 受信メールの内容を入力してください")
+            return
+        if contains_injection(received_email, reply_points):
+            st.error("❌ 入力に不正なパターンが検出されました。内容を確認してください。")
             return
         system_instr, user_content = build_prompts(received_email, reply_points, tone, language)
         st.divider()

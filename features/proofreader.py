@@ -1,5 +1,6 @@
 import streamlit as st
 from utils.gemini_client import stream_generate
+from utils.validators import contains_injection
 
 LEVELS = {
     "軽微な修正": "誤字脱字・表記ゆれ・句読点の修正のみ行い、文章の流れは極力変えないでください。",
@@ -62,15 +63,14 @@ def proofreader_page(model_name: str):
             max_chars=200,
         )
         show_changes = st.checkbox("修正箇所の説明を表示する", value=True)
-        temperature = st.slider(
-            "改善の積極度",
-            min_value=0.0, max_value=1.0, value=0.4, step=0.1,
-            help="高めにすると大胆な改善提案が増えます",
-        )
 
+    temperature = 0.4
     if st.button("✏️ 校正・改善する", type="primary", use_container_width=True):
         if not text.strip():
             st.error("❌ 校正・改善したい文章を入力してください")
+            return
+        if contains_injection(text, target_audience):
+            st.error("❌ 入力に不正なパターンが検出されました。内容を確認してください。")
             return
 
         system_instr, user_content = build_prompts(text, level, show_changes, target_audience)

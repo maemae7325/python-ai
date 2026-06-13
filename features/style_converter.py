@@ -1,5 +1,6 @@
 import streamlit as st
 from utils.gemini_client import stream_generate
+from utils.validators import contains_injection
 
 TARGET_STYLES = {
     "ですます調（丁寧体）": "「です」「ます」を使う丁寧な文体に変換してください。",
@@ -47,18 +48,12 @@ def style_converter_page(model_name: str):
         st.markdown("**✨ 変換後（ここに結果が表示されます）**")
         result_placeholder = st.empty()
 
-    col_style, col_temp = st.columns([3, 1])
-    with col_style:
-        target_style = st.selectbox(
-            "変換先の文体",
-            list(TARGET_STYLES.keys()),
-            help="変換後の文体スタイルを選択してください",
-        )
-    with col_temp:
-        temperature = st.slider(
-            "創造性",
-            min_value=0.0, max_value=1.0, value=0.4, step=0.1,
-        )
+    target_style = st.selectbox(
+        "変換先の文体",
+        list(TARGET_STYLES.keys()),
+        help="変換後の文体スタイルを選択してください",
+    )
+    temperature = 0.4
 
     # スタイルの説明を表示
     st.info(f"💡 **{target_style}**: {TARGET_STYLES[target_style]}")
@@ -66,6 +61,9 @@ def style_converter_page(model_name: str):
     if st.button("🔄 文体を変換", type="primary", use_container_width=True):
         if not text.strip():
             st.error("❌ 変換したい文章を入力してください")
+            return
+        if contains_injection(text):
+            st.error("❌ 入力に不正なパターンが検出されました。内容を確認してください。")
             return
 
         system_instr, user_content = build_prompts(text, target_style)

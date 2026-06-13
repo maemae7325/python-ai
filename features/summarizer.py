@@ -1,5 +1,6 @@
 import streamlit as st
 from utils.gemini_client import stream_generate
+from utils.validators import contains_injection
 
 LENGTHS = {
     "超短め（1〜2文）": "1〜2文で",
@@ -44,17 +45,12 @@ def summarizer_page(model_name: str):
         placeholder="ここに要約したい文章を貼り付けてください...\n\n記事、論文、レポート、ニュース記事など何でもOKです。",
     )
 
-    col1, col2, col3 = st.columns(3)
+    col1, col2 = st.columns(2)
     with col1:
         length = st.selectbox("要約の長さ", list(LENGTHS.keys()), index=1)
     with col2:
         style = st.selectbox("出力スタイル", list(STYLES.keys()))
-    with col3:
-        temperature = st.slider(
-            "創造性",
-            min_value=0.0, max_value=1.0, value=0.3, step=0.1,
-            help="低めにすると原文に忠実な要約になります",
-        )
+    temperature = 0.3
 
     extra_instruction = st.text_input(
         "追加の指示（任意）",
@@ -65,6 +61,9 @@ def summarizer_page(model_name: str):
     if st.button("📋 要約する", type="primary", use_container_width=True):
         if not text.strip():
             st.error("❌ 要約したい文章を入力してください")
+            return
+        if contains_injection(text, extra_instruction):
+            st.error("❌ 入力に不正なパターンが検出されました。内容を確認してください。")
             return
         if len(text) < 50:
             st.warning("⚠️ 文章が短すぎる可能性があります。より長い文章で試してください。")

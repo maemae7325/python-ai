@@ -1,5 +1,6 @@
 import streamlit as st
 from utils.gemini_client import stream_generate
+from utils.validators import contains_injection
 
 TONES = {
     "親しみやすい": "読者に親近感を与える、温かみのある文体",
@@ -75,15 +76,14 @@ def blog_writer_page(model_name: str):
     with col2:
         tone = st.selectbox("文体", list(TONES.keys()))
         length = st.selectbox("記事の長さ", list(LENGTHS.keys()), index=1)
-        temperature = st.slider(
-            "創造性",
-            min_value=0.0, max_value=1.0, value=0.7, step=0.1,
-            help="高いほど個性的・創造的な文章になります",
-        )
 
+    temperature = 0.7
     if st.button("📝 記事を生成", type="primary", use_container_width=True):
         if not topic.strip():
             st.error("❌ 記事のトピックを入力してください")
+            return
+        if contains_injection(topic, keywords, target):
+            st.error("❌ 入力に不正なパターンが検出されました。内容を確認してください。")
             return
         system_instr, user_content = build_prompts(topic, keywords, target, tone, length)
         st.divider()

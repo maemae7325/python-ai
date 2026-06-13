@@ -1,5 +1,6 @@
 import streamlit as st
 from utils.gemini_client import stream_generate
+from utils.validators import contains_injection
 
 PLATFORMS = {
     "X（旧Twitter）": {
@@ -70,11 +71,8 @@ def sns_writer_page(model_name: str):
         tone = st.selectbox("トーン", TONES)
         variations = st.selectbox("生成パターン数", [1, 3, 5], help="複数のバリエーションから選べます")
         use_hashtags = st.checkbox("ハッシュタグを追加する", value=True)
-        temperature = st.slider(
-            "創造性",
-            min_value=0.0, max_value=1.0, value=0.8, step=0.1,
-        )
 
+    temperature = 0.8
     # プラットフォームのヒント表示
     if platform in PLATFORMS:
         st.info(f"💡 **{platform}**: {PLATFORMS[platform]['limit']}")
@@ -82,6 +80,9 @@ def sns_writer_page(model_name: str):
     if st.button("📱 投稿文を生成", type="primary", use_container_width=True):
         if not content.strip():
             st.error("❌ 投稿したい内容・テーマを入力してください")
+            return
+        if contains_injection(content):
+            st.error("❌ 入力に不正なパターンが検出されました。内容を確認してください。")
             return
 
         system_instr, user_content = build_prompts(content, platform, tone, use_hashtags, int(variations))

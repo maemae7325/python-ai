@@ -1,5 +1,6 @@
 import streamlit as st
 from utils.gemini_client import stream_generate
+from utils.validators import contains_injection
 
 TYPES = {
     "ブログタイトル": "読者がクリックしたくなる魅力的なブログ記事タイトル",
@@ -54,15 +55,13 @@ def title_generator_page(model_name: str):
     with col3:
         count = st.selectbox("生成数", [5, 10, 15, 20], index=0)
 
-    temperature = st.slider(
-        "創造性",
-        min_value=0.0, max_value=1.0, value=0.9, step=0.1,
-        help="高めにすると多様でユニークなタイトルが生成されます",
-    )
-
+    temperature = 0.9
     if st.button("💡 タイトルを生成", type="primary", use_container_width=True):
         if not content.strip():
             st.error("❌ 内容・テーマを入力してください")
+            return
+        if contains_injection(content):
+            st.error("❌ 入力に不正なパターンが検出されました。内容を確認してください。")
             return
 
         system_instr, user_content = build_prompts(content, output_type, style, count)

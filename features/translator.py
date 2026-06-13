@@ -1,5 +1,6 @@
 import streamlit as st
 from utils.gemini_client import stream_generate
+from utils.validators import contains_injection
 
 LANGUAGES = [
     "英語（English）",
@@ -61,21 +62,19 @@ def translator_page(model_name: str):
         st.markdown("**✨ 翻訳結果（ここに表示されます）**")
         st.empty()
 
-    col_lang, col_style, col_temp = st.columns([2, 2, 1])
+    col_lang, col_style = st.columns(2)
     with col_lang:
         target_lang = st.selectbox("翻訳先の言語", LANGUAGES)
     with col_style:
         style = st.selectbox("翻訳スタイル", list(STYLES.keys()))
-    with col_temp:
-        temperature = st.slider(
-            "創造性",
-            min_value=0.0, max_value=1.0, value=0.3, step=0.1,
-            help="低めにすると忠実な翻訳、高めにすると自然さが増します",
-        )
+    temperature = 0.3
 
     if st.button("🌐 翻訳する", type="primary", use_container_width=True):
         if not text.strip():
             st.error("❌ 翻訳したいテキストを入力してください")
+            return
+        if contains_injection(text):
+            st.error("❌ 入力に不正なパターンが検出されました。内容を確認してください。")
             return
 
         system_instr, user_content = build_prompts(text, target_lang, style)

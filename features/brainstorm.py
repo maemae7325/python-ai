@@ -1,5 +1,6 @@
 import streamlit as st
 from utils.gemini_client import stream_generate
+from utils.validators import contains_injection
 
 IDEA_TYPES = {
     "ブログ記事ネタ": "ブログ記事のトピック・ネタ案",
@@ -61,15 +62,14 @@ def brainstorm_page(model_name: str):
         idea_type = st.selectbox("アイデアの種類", list(IDEA_TYPES.keys()))
         perspective = st.selectbox("視点・アングル", list(PERSPECTIVES.keys()))
         count = st.selectbox("生成数", [5, 10, 15, 20], index=1)
-        temperature = st.slider(
-            "創造性",
-            min_value=0.0, max_value=1.0, value=0.9, step=0.1,
-            help="高いほど斬新・ユニークなアイデアが出ます",
-        )
 
+    temperature = 0.9
     if st.button("🧠 アイデアを生成", type="primary", use_container_width=True):
         if not topic.strip():
             st.error("❌ テーマを入力してください")
+            return
+        if contains_injection(topic, extra):
+            st.error("❌ 入力に不正なパターンが検出されました。内容を確認してください。")
             return
 
         system_instr, user_content = build_prompts(topic, idea_type, perspective, count, extra)
